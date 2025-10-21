@@ -1,25 +1,27 @@
 #!/usr/bin/env python3
-from robstride import Motor
+"""Read motor parameters using robstride Client."""
+import can
+from robstride import Client
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
-PORT = os.getenv('PORT', '/dev/ch340_can')
-BITRATE = int(os.getenv('BITRATE', 1000000))
-NODE_ID = int(os.getenv('NODE_ID', 107))
+NODE_ID = int(os.getenv('NODE_ID', 127))
 
-print(f"Connecting to motor {NODE_ID} on {PORT} at {BITRATE} bps...")
-motor = Motor(port=PORT, motor_id=NODE_ID, bitrate=BITRATE)
-motor.connect()
+print(f"Connecting to motor {NODE_ID} on can0...")
+bus = can.Bus(interface='socketcan', channel='can0', bitrate=1000000)
+client = Client(bus, host_can_id=0xAA)
 
-pos = motor.get_position()
-vel = motor.get_velocity()
-temp = motor.get_temperature()
-
-print(f"Pos: {pos:.3f} rad")
-print(f"Vel: {vel:.3f} rad/s")
-print(f"Temp: {temp}°C")
-
-motor.disconnect()
-print("Done.")
+try:
+    # Read parameters
+    pos = client.read_param(NODE_ID, 'mechpos')
+    vel = client.read_param(NODE_ID, 'mechvel')
+    vbus = client.read_param(NODE_ID, 'vbus')
+    
+    print(f"Position: {pos:.3f} rad")
+    print(f"Velocity: {vel:.3f} rad/s")
+    print(f"Bus Voltage: {vbus:.1f} V")
+    print("✓ Read successful")
+    
+finally:
+    bus.shutdown()
+    print("Done.")
 
