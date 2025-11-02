@@ -14,6 +14,8 @@ class SDKInterface:
     """Thread-safe wrapper for RS03 motor control via CAN."""
     
     HOST_ID = 0xAA
+    MIN_COMMAND_INTERVAL = 0.001  # 1ms minimum between commands
+    WATCHDOG_TIMEOUT = 1.0  # Stop motor if no command in 1 second
     
     def __init__(self, port: str, motor_id: int, bitrate: int):
         self.port = port
@@ -23,6 +25,9 @@ class SDKInterface:
         self.client: Optional[Client] = None
         self._lock = threading.Lock()
         self._enabled = False
+        self._last_command_time = 0
+        self._watchdog_active = False
+        self._watchdog_thread = None
         
     def connect(self) -> bool:
         """Connect to CAN bus and motor."""
@@ -71,6 +76,12 @@ class SDKInterface:
         try:
             with self._lock:
                 if self.client:
+                    # Send stop command before disabling
+                    try:
+                        self._send_control_frame(0, 0, 10.0, 2.0, 0)
+                    except:
+                        pass
+                    
                     self.client.disable(self.motor_id)
                     self._enabled = False
                     return True
@@ -78,16 +89,44 @@ class SDKInterface:
         except Exception as e:
             print(f"Disable failed: {e}")
             return False
+    
+    def emergency_stop(self):
+        """Emergency stop - immediately disable motor."""
+        try:
+            with self._lock:
+                self._enabled = False
+                if self.client:
+                    # Try to stop motion first
+                    try:
+                        self._send_control_frame(0, 0, 50.0, 10.0, 0)
+                    except:
+                        pass
+                    # Then disable
+                    self.client.disable(self.motor_id)
+        except:
+            pass  # Best effort in emergency
             
     def set_limits(self, current_limit: float, velocity_limit: float):
-        """Set safety limits via parameters."""
+        """Set and verify safety limits via parameters."""
         with self._lock:
             if self.client:
                 try:
+                    # Set limits
                     self.client.write_param(self.motor_id, 'limit_cur', current_limit)
                     self.client.write_param(self.motor_id, 'limit_spd', velocity_limit)
+                    
+                    # Verify limits were set correctly
+                    actual_cur = self.client.read_param(self.motor_id, 'limit_cur')
+                    actual_spd = self.client.read_param(self.motor_id, 'limit_spd')
+                    
+                    if abs(actual_cur - current_limit) > 0.1:
+                        raise ValueError(f"Current limit verification failed: set {current_limit}, got {actual_cur}")
+                    if abs(actual_spd - velocity_limit) > 0.1:
+                        raise ValueError(f"Velocity limit verification failed: set {velocity_limit}, got {actual_spd}")
+                        
                 except Exception as e:
                     print(f"Failed to set limits: {e}")
+                    raise
     
     def _make_can_id(self, msg_type: int) -> int:
         """Build extended CAN ID."""
@@ -95,7 +134,19 @@ class SDKInterface:
     
     def _send_control_frame(self, position: float, velocity: float, 
                            kp: float, kd: float, torque: float):
-        """Send raw control frame (Operation Control mode)."""
+        """Send raw control frame (Operation Control mode) with safety validation."""
+        # Safety validation - prevent dangerous commands
+        if not (-10.0 <= position <= 10.0):
+            raise ValueError(f"Position {position} out of safe range [-10, 10] rad")
+        if not (-10.0 <= velocity <= 10.0):
+            raise ValueError(f"Velocity {velocity} out of safe range [-10, 10] rad/s")
+        if not (0 <= kp <= 500.0):
+            raise ValueError(f"Kp {kp} out of safe range [0, 500]")
+        if not (0 <= kd <= 50.0):
+            raise ValueError(f"Kd {kd} out of safe range [0, 50]")
+        if not (-50.0 <= torque <= 50.0):
+            raise ValueError(f"Torque {torque} out of safe range [-50, 50] Nm")
+        
         pos_int = int(position * 10000) & 0xFFFF
         vel_int = int(velocity * 100) & 0xFFFF
         kp_int = int(kp * 100) & 0xFFFF
@@ -135,10 +186,22 @@ class SDKInterface:
                 
     def send_operation_control(self, position: float, velocity: float, 
                                kp: float, kd: float, torque: float):
-        """Send operation control command (mode 0 - MIT Cheetah style)."""
+        """Send operation control command (mode 0 - MIT Cheetah style) with rate limiting."""
         with self._lock:
             if self._enabled:
-                self._send_control_frame(position, velocity, kp, kd, torque)
+                # Rate limiting
+                now = time.time()
+                if now - self._last_command_time < self.MIN_COMMAND_INTERVAL:
+                    time.sleep(self.MIN_COMMAND_INTERVAL - (now - self._last_command_time))
+                
+                try:
+                    self._send_control_frame(position, velocity, kp, kd, torque)
+                    self._last_command_time = time.time()
+                except ValueError as e:
+                    print(f"Safety validation failed: {e}")
+                    # Send safe stop command
+                    self._send_control_frame(0, 0, 10.0, 2.0, 0)
+                    raise
                 
     def get_telemetry(self) -> Tuple[float, float, float]:
         """Get position, velocity, temperature."""

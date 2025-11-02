@@ -1,0 +1,52 @@
+# Configuration for 5-node MIT Cheetah control
+# Each motor has its own namespace
+
+motor_1:
+  rs03_actuator:
+    ros__parameters:
+      can_port: "/dev/ttyACM0"
+      bitrate: 1000000
+      can_id: 101
+      loop_rate_hz: 100.0
+      current_limit: 2.0
+      velocity_limit: 2.0
+
+motor_2:
+  rs03_actuator:
+    ros__parameters:
+      can_port: "/dev/ttyACM0"
+      bitrate: 1000000
+      can_id: 102
+      loop_rate_hz: 100.0
+      current_limit: 2.0
+      velocity_limit: 2.0
+
+motor_3:
+  rs03_actuator:
+    ros__parameters:
+      can_port: "/dev/ttyACM0"
+      bitrate: 1000000
+      can_id: 103
+      loop_rate_hz: 100.0
+      current_limit: 2.0
+      velocity_limit: 2.0
+
+motor_4:
+  rs03_actuator:
+    ros__parameters:
+      can_port: "/dev/ttyACM0"
+      bitrate: 1000000
+      can_id: 104
+      loop_rate_hz: 100.0
+      current_limit: 2.0
+      velocity_limit: 2.0
+
+motor_5:
+  rs03_actuator:
+    ros__parameters:
+      can_port: "/dev/ttyACM0"
+      bitrate: 1000000
+      can_id: 105
+      loop_rate_hz: 100.0
+      current_limit: 2.0
+      velocity_limit: 2.0

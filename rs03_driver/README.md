@@ -206,13 +206,47 @@ if __name__ == '__main__':
     main()
 ```
 
+## Multi-Motor Support
+
+### Launch 5 Motors for MIT Control
+
+```bash
+ros2 launch rs03_driver rs03_multi.launch.py
+```
+
+This launches 5 motor nodes with namespaces:
+- `/motor_1/` (CAN ID 101)
+- `/motor_2/` (CAN ID 102)  
+- `/motor_3/` (CAN ID 103)
+- `/motor_4/` (CAN ID 104)
+- `/motor_5/` (CAN ID 105)
+
+### Control All Motors
+
+```bash
+ros2 run rs03_driver multi_motor_commander.py
+```
+
+### Monitor All Motors
+
+```bash
+# In separate terminals:
+ros2 topic echo /motor_1/status
+ros2 topic echo /motor_2/status
+# etc...
+```
+
+### Multi-Motor Configuration
+
+See `config/rs03_multi_params.yaml` for multi-motor parameter configuration.
+
 ## Future Enhancements
 
-- [ ] Multi-actuator support with namespacing
+- [x] Multi-actuator support with namespacing
 - [ ] Diagnostics topic with detailed fault info
 - [ ] Action server for trajectory execution
 - [ ] Service interface for parameter changes
-- [ ] Launch file for multi-joint systems
+- [x] Launch file for multi-joint systems
 - [ ] URDF integration examples
 
 ## License

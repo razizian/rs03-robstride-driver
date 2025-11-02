@@ -23,7 +23,7 @@ class RS03ActuatorNode(Node):
         super().__init__('rs03_actuator')
         
         # Declare parameters
-        self.declare_parameter('can_port', '/dev/ch340_can')
+        self.declare_parameter('can_port', '/dev/ttyACM0')
         self.declare_parameter('bitrate', 1000000)
         self.declare_parameter('can_id', 107)
         self.declare_parameter('loop_rate_hz', 100.0)

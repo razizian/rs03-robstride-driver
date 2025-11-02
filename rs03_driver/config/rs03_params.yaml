@@ -4,7 +4,7 @@
 rs03_actuator:
   ros__parameters:
     # CAN Interface
-    can_port: "/dev/ch340_can"
+    can_port: "/dev/ttyACM0"
     bitrate: 1000000
     can_id: 107
     

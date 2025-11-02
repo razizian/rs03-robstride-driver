@@ -3,16 +3,12 @@ sudo pkill slcand 2>/dev/null || true
 sudo ip link delete can0 2>/dev/null || true
 sudo systemctl stop ModemManager 2>/dev/null || true
 
-# Auto-detect device: prefer ttyACM0 (MKS CANable), fallback to ch340_can
-DEVICE=""
-if [ -e "/dev/ttyACM0" ]; then
-    DEVICE="/dev/ttyACM0"
-    echo "Found MKS CANable at /dev/ttyACM0"
-elif [ -e "/dev/ch340_can" ]; then
-    DEVICE="/dev/ch340_can"
-    echo "Found CH340 at /dev/ch340_can"
+# Check for MKS CANable device
+DEVICE="/dev/ttyACM0"
+if [ -e "$DEVICE" ]; then
+    echo "Found MKS CANable at $DEVICE"
 else
-    echo "✗ No CAN adapter found (/dev/ttyACM0 or /dev/ch340_can)"
+    echo "✗ No CAN adapter found at /dev/ttyACM0"
     exit 1
 fi
 

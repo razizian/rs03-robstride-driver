@@ -1,18 +1,18 @@
 # RobStride RS03 CAN Interface
 
-Python SDK for controlling RobStride RS03 actuators over CAN bus using CH340 USB-to-CAN adapter.
+Python SDK for controlling RobStride RS03 actuators over CAN bus using MKS CANable adapter.
 
 ## Quickstart
 
 ### Prerequisites
 - Ubuntu with sudo access
-- CH340 USB-to-CAN adapter
+- MKS CANable USB-to-CAN adapter
 - RobStride RS03 actuator (no load, securely mounted)
 - Power supply (12-48V DC, check actuator specs)
 
 ### Wiring
-- CANH (CAN High) → CH340 CANH
-- CANL (CAN Low) → CH340 CANL
+- CANH (CAN High) → MKS CANable CANH
+- CANL (CAN Low) → MKS CANable CANL
 - GND → Common ground
 - 120Ω termination at both ends of CAN bus
 
@@ -21,28 +21,25 @@ Python SDK for controlling RobStride RS03 actuators over CAN bus using CH340 USB
 #### 1. Install System Packages
 ```bash
 sudo apt update
-sudo apt install -y can-utils python3-venv git usbutils
+sudo apt install -y can-utils git usbutils
 ```
 
-#### 2. Install udev Rule
+#### 2. Install UV Package Manager
 ```bash
-sudo cp udev/99-ch340-can.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules
-sudo udevadm trigger
+wget -qO- https://astral.sh/uv/install.sh | sh
+source $HOME/.local/bin/env
 ```
-Replug CH340 and verify: `ls -l /dev/ch340_can`
+
+#### 2. Verify MKS CANable Detection
+```bash
+ls -l /dev/ttyACM0
+```
+The MKS CANable should appear as `/dev/ttyACM0` when plugged in.
 
 #### 3. Setup Python Environment
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-pip install python-dotenv robstride
-```
-
-If `robstride` is not available on PyPI:
-```bash
-pip install git+https://github.com/sirwart/robstride
+uv sync --no-extras
+# UV will automatically create .venv and install all dependencies
 ```
 
 #### 4. Configure Environment
@@ -60,7 +57,7 @@ cp .env.template .env
 
 #### 2. Test connection (read-only)
 ```bash
-source .venv/bin/activate
+source .venv/bin/activate  # UV created this
 python examples/read_params.py
 ```
 
@@ -94,7 +91,7 @@ cat logs/session_notes.md
 | Permission denied /dev | Add user to dialout: `sudo usermod -aG dialout $USER` (logout required) |
 | Interface not can0 | Script auto-detects; check output for actual name (slcan0) |
 | CRC/ERR counters rising | Verify 120Ω termination and cable quality |
-| CH340 not detected | Check `lsusb` for device 1a86:7523, try different USB port |
+| MKS CANable not detected | Check `lsusb` for device, verify it shows as /dev/ttyACM0 |
 | ModemManager conflicts | Script auto-stops it; or disable: `sudo systemctl disable ModemManager` |
 
 ### CAN Bus Monitoring
@@ -130,7 +127,7 @@ watch -n1 "ip -s link show can0"
 │   ├── can_up.sh          # Bring up CAN interface (auto-detects can0/slcan0)
 │   └── can_down.sh        # Shutdown CAN interface
 ├── udev/
-│   └── 99-ch340-can.rules # CH340 → /dev/ch340_can symlink
+│   └── (removed - no longer needed)
 ├── examples/
 │   ├── first_motion.py    # Minimal motion test (±0.5 rad/s jog)
 │   └── read_params.py     # Read telemetry (no motion)
@@ -143,7 +140,7 @@ watch -n1 "ip -s link show can0"
 ### Configuration
 
 Edit `.env` to customize:
-- `PORT`: Serial device path (default: /dev/ch340_can)
+- `PORT`: Serial device path (default: /dev/ttyACM0)
 - `BITRATE`: CAN bitrate in bps (default: 1000000)
 - `NODE_ID`: Motor CAN ID (default: 107)
 

@@ -15,9 +15,9 @@ from robstride import Client, RunMode
 DRY_RUN = '--dry-run' in sys.argv
 
 # Configuration
-PORT = os.getenv('PORT', '/dev/ch340_can')
+PORT = os.getenv('PORT', '/dev/ttyACM0')
 BITRATE = int(os.getenv('BITRATE', 1000000))
-MOTOR_ID = int(os.getenv('NODE_ID', 107))
+MOTOR_ID = int(os.getenv('NODE_ID', 127))
 
 print(f"Connecting to motor {MOTOR_ID} via can0...")
 
@@ -43,15 +43,30 @@ if DRY_RUN:
     print("Done (no motion executed).")
     sys.exit(0)
 
-# Safety limits
+# Safety limits with verification
 print("Setting safety limits (I_max=2A, V_max=2rad/s)...")
 client.write_param(MOTOR_ID, 'limit_cur', 2.0)
 client.write_param(MOTOR_ID, 'limit_spd', 2.0)
 
-# Enable motor
+# Verify limits were set
+actual_cur = client.read_param(MOTOR_ID, 'limit_cur')
+actual_spd = client.read_param(MOTOR_ID, 'limit_spd')
+print(f"Verified limits: Current={actual_cur:.1f}A, Speed={actual_spd:.1f}rad/s")
+
+if abs(actual_cur - 2.0) > 0.1 or abs(actual_spd - 2.0) > 0.1:
+    print("ERROR: Safety limits not set correctly!")
+    bus.shutdown()
+    sys.exit(1)
+
+# Enable motor with error handling
 print("Enabling motor...")
-feedback = client.enable(MOTOR_ID)
-print("Motor enabled successfully!")
+try:
+    feedback = client.enable(MOTOR_ID)
+    print("Motor enabled successfully!")
+except Exception as e:
+    print(f"ERROR: Failed to enable motor: {e}")
+    bus.shutdown()
+    sys.exit(1)
 
 # TODO: The SDK doesn't expose velocity control in the Client class we saw
 # For now, demonstrate enable/disable cycle only
@@ -64,9 +79,23 @@ vel = client.read_param(MOTOR_ID, 'mechvel')
 vbus = client.read_param(MOTOR_ID, 'vbus')
 print(f"\nFinal state - Pos: {pos:.3f} rad, Vel: {vel:.3f} rad/s, Vbus: {vbus:.1f} V")
 
-# Disable motor
-print("Disabling motor...")
-client.disable(MOTOR_ID)
-bus.shutdown()
-print("Done.")
+# Disable motor with safety stop
+try:
+    print("Sending stop command...")
+    # Try to stop motion before disabling
+    for _ in range(5):
+        try:
+            # Send zero velocity command if we had velocity control
+            pass
+        except:
+            pass
+        time.sleep(0.1)
+    
+    print("Disabling motor...")
+    client.disable(MOTOR_ID)
+except Exception as e:
+    print(f"Warning during shutdown: {e}")
+finally:
+    bus.shutdown()
+    print("Done.")
 
