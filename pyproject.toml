@@ -9,12 +9,8 @@ requires-python = ">=3.8"
 dependencies = [
     "python-dotenv",
     "python-can",
+    "numpy",
     "robstride @ git+https://github.com/sirwart/robstride",
-]
-
-[project.optional-dependencies]
-ros2 = [
-    "rclpy",
 ]
 
 [build-system]

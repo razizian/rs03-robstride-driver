@@ -50,18 +50,36 @@ cp .env.template .env
 
 ### Running
 
-#### 1. Bring up CAN interface
+#### Quick Validation Suite
+Run the complete validation suite to test your hardware:
+```bash
+./run_validation_suite.sh
+```
+This will guide you through:
+1. Hardware validation with reduced safety limits
+2. Multi-motor incremental testing 
+3. Latency profiling
+4. Trajectory following demos
+
+#### Manual Testing
+
+1. **Bring up CAN interface**
 ```bash
 ./scripts/can_up.sh
 ```
 
-#### 2. Test connection (read-only)
+2. **Test connection (read-only)**
 ```bash
 source .venv/bin/activate  # UV created this
 python examples/read_params.py
 ```
 
-#### 3. Run motion test
+3. **Hardware validation** (start here for new setups)
+```bash
+python examples/hardware_validation.py
+```
+
+4. **Run motion test**
 ```bash
 python examples/first_motion.py
 ```
@@ -71,13 +89,7 @@ For dry-run (no motion):
 python examples/first_motion.py --dry-run
 ```
 
-#### 4. Check logs
-```bash
-ls logs/
-cat logs/session_notes.md
-```
-
-#### 5. Shutdown CAN interface
+5. **Shutdown CAN interface**
 ```bash
 ./scripts/can_down.sh
 ```
@@ -124,17 +136,25 @@ watch -n1 "ip -s link show can0"
 ```
 .
 ├── scripts/
-│   ├── can_up.sh          # Bring up CAN interface (auto-detects can0/slcan0)
-│   └── can_down.sh        # Shutdown CAN interface
-├── udev/
-│   └── (removed - no longer needed)
+│   ├── can_up.sh                    # Bring up CAN interface
+│   └── can_down.sh                  # Shutdown CAN interface
 ├── examples/
-│   ├── first_motion.py    # Minimal motion test (±0.5 rad/s jog)
-│   └── read_params.py     # Read telemetry (no motion)
+│   ├── first_motion.py              # Basic motion test
+│   ├── read_params.py               # Read telemetry (no motion)
+│   ├── hardware_validation.py       # Safe hardware testing with reduced limits
+│   ├── multi_motor_incremental.py   # Progressive multi-motor validation
+│   ├── latency_measurement.py       # Command latency profiling
+│   ├── trajectory_following.py      # Advanced trajectory demos
+│   └── safety_utils.py              # Shared safety utilities
+├── docs/
+│   ├── cpp_migration_plan.md        # C++ SDK roadmap
+│   └── ...                          # Other documentation
 ├── logs/
-│   └── session_notes.md   # Manual logging template
-├── .env.template          # Configuration template
-└── README.md              # This file
+│   └── session_notes.md             # Manual logging template
+├── rs03_driver/                     # ROS2 package
+├── run_validation_suite.sh          # Automated validation script
+├── .env.template                    # Configuration template
+└── README.md                        # This file
 ```
 
 ### Configuration
@@ -144,12 +164,43 @@ Edit `.env` to customize:
 - `BITRATE`: CAN bitrate in bps (default: 1000000)
 - `NODE_ID`: Motor CAN ID (default: 107)
 
+### Validation Tools
+
+#### Hardware Validation (`hardware_validation.py`)
+Safe first-time testing with reduced limits:
+- Current limit: 0.5A (reduced from 2A)
+- Velocity limit: 0.5 rad/s (reduced from 2 rad/s)
+- Tests: position hold, small movements, low velocity, compliance
+
+#### Multi-Motor Validation (`multi_motor_incremental.py`)
+Progressive testing of multiple motors:
+- Tests 1→2→3→4→5 motors incrementally
+- Synchronization verification
+- Wave patterns and compliance gradients
+- Stops at first failure for safety
+
+#### Latency Measurement (`latency_measurement.py`)
+System performance profiling:
+- Measures command round-trip times
+- Tests single and multi-motor scaling
+- Generates detailed JSON report
+- Identifies performance bottlenecks
+
+#### Trajectory Following (`trajectory_following.py`)
+Advanced motion control demonstrations:
+- Sine wave trajectories
+- Trapezoidal velocity profiles
+- Multi-motor coordination
+- Real-time tracking metrics
+
 ### Next Steps
 
-- Tune PID parameters for your application
-- Implement closed-loop position/velocity control
+- Run `./run_validation_suite.sh` for guided testing
+- Review generated `latency_report.json` for performance data
+- Tune PID parameters based on your application
+- Implement custom trajectories using provided examples
+- See `docs/cpp_migration_plan.md` for C++ SDK roadmap
 - Use ROS2 wrapper for robotic integration (see `rs03_driver/`)
-- Log telemetry to CSV/database for analysis
 
 ## ROS 2 Integration
 
