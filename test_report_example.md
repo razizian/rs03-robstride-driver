@@ -301,3 +301,4 @@ Moving all motors to zero position...
 2. 📊 Review latency_report.json → Optimize bottlenecks
 3. 🎯 Implement your trajectories using examples as templates
 4. 🚀 Move to production with C++ SDK (see migration plan)
+

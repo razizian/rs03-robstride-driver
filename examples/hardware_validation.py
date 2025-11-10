@@ -68,7 +68,6 @@ def run_hardware_tests(client, motor_id):
     
     # Step 4: Small position hold test
     print("\n4. Position hold test (holding current position)...")
-    client.set_mode(motor_id, RunMode.MIT)
     # Hold position with low gains
     pos_cmd = pos  # Hold at current position
     for i in range(30):  # 3 seconds at 10Hz
@@ -186,3 +185,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+

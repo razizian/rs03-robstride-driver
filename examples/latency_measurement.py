@@ -17,7 +17,7 @@ PORT = os.getenv('PORT', '/dev/ttyACM0')
 BITRATE = int(os.getenv('BITRATE', 1000000))
 
 # Test parameters
-TEST_MOTOR_IDS = [101, 102, 103, 104, 105]
+TEST_MOTOR_IDS = [int(os.getenv('TEST_MOTOR_ID', 127))]
 NUM_SAMPLES = 100  # Samples per test
 WARMUP_SAMPLES = 10  # Warmup iterations
 
@@ -374,3 +374,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+

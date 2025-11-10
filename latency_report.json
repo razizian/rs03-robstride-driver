@@ -1,0 +1,12 @@
+{
+  "timestamp": "2025-11-10T19:12:35.748460",
+  "configuration": {
+    "bitrate": 1000000,
+    "num_samples": 100,
+    "warmup_samples": 10
+  },
+  "results": {
+    "single_motor": {},
+    "scaling": {}
+  }
+}
